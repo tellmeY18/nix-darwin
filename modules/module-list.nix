@@ -62,6 +62,7 @@
   ./power/sleep.nix
   ./services/activate-system
   ./services/aerospace
+  ./services/aerohud
   ./services/autossh.nix
   ./services/buildkite-agents.nix
   ./services/chunkwm.nix
