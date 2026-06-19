@@ -617,6 +617,33 @@ in
       }
     );
 
+
+    # Launchd agent: re-apply Nix config after every login.
+    # OmniWM writes its own defaults over settings.toml on every
+    # launch. This agent copies the Nix-managed config shortly
+    # after login, letting OmniWM live-reload it.
+    launchd.user.agents.omniwmConfig = {
+      script = ''
+        CONFIG_DIR="$HOME/.config/omniwm"
+        NIX_CONFIG="${configFile}"
+
+        # Wait for OmniWM to finish startup and write its defaults
+        sleep 4
+
+        if [ -f "$NIX_CONFIG" ]; then
+          mkdir -p "$CONFIG_DIR"
+          install -m 644 "$NIX_CONFIG" "$CONFIG_DIR/settings.toml"
+          echo "omniwmConfig: re-applied Nix config" >&2
+        fi
+      '';
+      serviceConfig = {
+        RunAtLoad = true;
+        KeepAlive = false;
+        StandardOutPath = "/tmp/omniwmConfig.log";
+        StandardErrorPath = "/tmp/omniwmConfig.log";
+      };
+    };
+
     assertions = lib.optional cfg.enableConfigManagement {
       assertion = config.system.primaryUser != null;
       message = ''
