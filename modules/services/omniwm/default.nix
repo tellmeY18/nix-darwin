@@ -52,10 +52,13 @@ in
               default = true;
               description = "Enable keyboard shortcuts.";
             };
+            # NOTE: key is named hyperTrigger in the actual TOML output.
+            # systemHyperTrigger is omitted by default — use the freeform
+            # `hyperTrigger` key directly in your settings.
             systemHyperTrigger = lib.mkOption {
-              type = lib.types.str;
-              default = "none";
-              description = "System-level hyper trigger key (capsLock, f13-f20, or a modifier).";
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = "DEPRECATED: use hyperTrigger in freeform settings instead.";
             };
             defaultLayoutType = lib.mkOption {
               type = lib.types.enum [ "niri" "dwindle" ];
