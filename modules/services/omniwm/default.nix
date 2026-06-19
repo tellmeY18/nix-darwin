@@ -41,12 +41,6 @@ in
   options.services.omniwm = {
     enable = lib.mkEnableOption "OmniWM window manager";
 
-    package = lib.mkPackageOption pkgs "omniwm" {
-      default = [ ];
-      example = "/Applications/OmniWM.app/Contents/MacOS/OmniWM";
-      description = "Path to the OmniWM executable (installed via Homebrew cask).";
-    };
-
     settings = lib.mkOption {
       type = lib.types.submodule {
         freeformType = format.type;
@@ -61,8 +55,7 @@ in
             systemHyperTrigger = lib.mkOption {
               type = lib.types.str;
               default = "none";
-              description = "System-level hyper trigger key.";
-              example = "capsLock";
+              description = "System-level hyper trigger key (capsLock, f13-f20, or a modifier).";
             };
             defaultLayoutType = lib.mkOption {
               type = lib.types.enum [ "niri" "dwindle" ];
@@ -77,7 +70,7 @@ in
             updateChecksEnabled = lib.mkOption {
               type = lib.types.bool;
               default = true;
-              description = "Check for updates on launch.";
+              description = "Check for updates on launch (polls GitHub once per day).";
             };
             ipcEnabled = lib.mkOption {
               type = lib.types.bool;
@@ -87,7 +80,7 @@ in
             spacesTrackingEnabled = lib.mkOption {
               type = lib.types.bool;
               default = true;
-              description = "Track macOS Spaces for native fullscreen and inactive space suppression.";
+              description = "Track macOS Spaces for native fullscreen detection and inactive-space suppression.";
             };
             animationsEnabled = lib.mkOption {
               type = lib.types.bool;
@@ -100,22 +93,17 @@ in
             followsMouse = lib.mkOption {
               type = lib.types.bool;
               default = false;
-              description = "Focus follows mouse movement.";
+              description = "Focus follows mouse movement (debounced).";
             };
             moveMouseToFocusedWindow = lib.mkOption {
               type = lib.types.bool;
               default = false;
-              description = "Move mouse cursor to the focused window.";
+              description = "Move the cursor to the focused window on focus change.";
             };
             followsWindowToMonitor = lib.mkOption {
               type = lib.types.bool;
               default = false;
               description = "Move focus to the monitor of the focused window.";
-            };
-            crossesMonitorAtEdge = lib.mkOption {
-              type = lib.types.bool;
-              default = false;
-              description = "Focus crosses to the next monitor at screen edge.";
             };
           };
 
@@ -127,14 +115,14 @@ in
               example = [ "Built-in Retina Display" "DELL U2723QE" ];
             };
             axis = lib.mkOption {
-              type = lib.types.nullOr lib.types.str;
+              type = lib.types.nullOr (lib.types.enum [ "horizontal" "vertical" ]);
               default = null;
-              description = "Mouse warp axis (horizontal or vertical).";
+              description = "Mouse warp axis.";
             };
             margin = lib.mkOption {
               type = lib.types.int;
               default = 0;
-              description = "Margin before mouse warp triggers.";
+              description = "Margin in points before mouse warp triggers at screen edge.";
             };
           };
 
@@ -174,6 +162,11 @@ in
               default = 4;
               description = "Maximum visible columns in Niri layout.";
             };
+            maxWindowsPerColumn = lib.mkOption {
+              type = lib.types.nullOr lib.types.int;
+              default = null;
+              description = "Maximum windows per column (null = unlimited).";
+            };
             infiniteLoop = lib.mkOption {
               type = lib.types.bool;
               default = false;
@@ -192,8 +185,7 @@ in
             singleWindowAspectRatio = lib.mkOption {
               type = lib.types.str;
               default = "disabled";
-              description = "Single-window fit mode (disabled, fit, or aspect ratio like 16/9).";
-              example = "16/9";
+              description = "Single-window fit mode: disabled, fill, or an aspect ratio like 16/9 or 4:3.";
             };
             columnWidthPresets = lib.mkOption {
               type = lib.types.nullOr (lib.types.listOf lib.types.number);
@@ -211,32 +203,32 @@ in
             smartSplit = lib.mkOption {
               type = lib.types.bool;
               default = true;
-              description = "Smart split orientation (chooses based on aspect ratio).";
+              description = "Smart split orientation (chooses based on rectangle aspect ratio).";
             };
             defaultSplitRatio = lib.mkOption {
               type = lib.types.number;
               default = 0.5;
-              description = "Default split ratio.";
+              description = "Default split ratio (0-1).";
             };
             splitWidthMultiplier = lib.mkOption {
               type = lib.types.number;
               default = 1.0;
-              description = "Split width multiplier.";
+              description = "Split width multiplier for visual balance.";
             };
             singleWindowAspectRatio = lib.mkOption {
               type = lib.types.str;
-              default = "disabled";
-              description = "Single-window fit aspect ratio.";
+              default = "fill";
+              description = "Single-window fit: fill, disabled, or an aspect ratio.";
             };
             useGlobalGaps = lib.mkOption {
               type = lib.types.bool;
               default = true;
-              description = "Use global gap settings.";
+              description = "Use global gap settings (or per-monitor gaps).";
             };
             moveToRootStable = lib.mkOption {
               type = lib.types.bool;
               default = false;
-              description = "Preserve window positions when moving to root.";
+              description = "Preserve window positions when moving to root split.";
             };
           };
 
@@ -284,12 +276,12 @@ in
             showLabels = lib.mkOption {
               type = lib.types.bool;
               default = true;
-              description = "Show workspace labels in the bar.";
+              description = "Show workspace labels (display names) in the bar.";
             };
             showFloatingWindows = lib.mkOption {
               type = lib.types.bool;
               default = false;
-              description = "Show floating windows in the bar.";
+              description = "Show floating window indicators in the bar.";
             };
             windowLevel = lib.mkOption {
               type = lib.types.enum [ "popup" "statusBar" "floating" ];
@@ -297,13 +289,9 @@ in
               description = "Window level of the bar.";
             };
             position = lib.mkOption {
-              type = lib.types.enum [
-                "overlappingMenuBar"
-                "underMenuBar"
-                "floating"
-              ];
+              type = lib.types.enum [ "overlappingMenuBar" "underMenuBar" "floating" ];
               default = "overlappingMenuBar";
-              description = "Bar position relative to the menu bar.";
+              description = "Bar position relative to the macOS menu bar.";
             };
             notchAware = lib.mkOption {
               type = lib.types.bool;
@@ -313,17 +301,17 @@ in
             deduplicateAppIcons = lib.mkOption {
               type = lib.types.bool;
               default = true;
-              description = "Deduplicate app icons (one icon per app, not per window).";
+              description = "Show one icon per app (not one per window).";
             };
             hideEmptyWorkspaces = lib.mkOption {
               type = lib.types.bool;
-              default = true;
+              default = false;
               description = "Hide workspaces with no open windows.";
             };
             reserveLayoutSpace = lib.mkOption {
               type = lib.types.bool;
               default = false;
-              description = "Reserve space for the bar in the layout engine.";
+              description = "Reserve bar space in the layout engine so windows don't go under it.";
             };
             height = lib.mkOption {
               type = lib.types.number;
@@ -338,41 +326,17 @@ in
             xOffset = lib.mkOption {
               type = lib.types.number;
               default = 0.0;
-              description = "Horizontal offset from the default position.";
+              description = "Horizontal offset from the default bar position.";
             };
             yOffset = lib.mkOption {
               type = lib.types.number;
               default = 0.0;
-              description = "Vertical offset from the default position.";
+              description = "Vertical offset from the default bar position.";
             };
             labelFontSize = lib.mkOption {
               type = lib.types.number;
               default = 12.0;
-              description = "Font size for workspace labels.";
-            };
-            accentColor = lib.mkOption {
-              type = lib.types.nullOr (lib.types.submodule {
-                options = {
-                  red = lib.mkOption { type = lib.types.number; default = 0.5; };
-                  green = lib.mkOption { type = lib.types.number; default = 0.8; };
-                  blue = lib.mkOption { type = lib.types.number; default = 1.0; };
-                  alpha = lib.mkOption { type = lib.types.number; default = 1.0; };
-                };
-              });
-              default = null;
-              description = "Accent color for the workspace bar (null = use theme default).";
-            };
-            textColor = lib.mkOption {
-              type = lib.types.nullOr (lib.types.submodule {
-                options = {
-                  red = lib.mkOption { type = lib.types.number; default = 1.0; };
-                  green = lib.mkOption { type = lib.types.number; default = 1.0; };
-                  blue = lib.mkOption { type = lib.types.number; default = 1.0; };
-                  alpha = lib.mkOption { type = lib.types.number; default = 1.0; };
-                };
-              });
-              default = null;
-              description = "Text color for the workspace bar (null = use theme default).";
+              description = "Font size for workspace bar labels.";
             };
           };
 
@@ -380,7 +344,7 @@ in
             scrollEnabled = lib.mkOption {
               type = lib.types.bool;
               default = true;
-              description = "Enable scroll gestures.";
+              description = "Enable scroll-to-navigate-columns gesture.";
             };
             scrollSensitivity = lib.mkOption {
               type = lib.types.number;
@@ -388,24 +352,24 @@ in
               description = "Scroll gesture sensitivity multiplier.";
             };
             scrollModifierKey = lib.mkOption {
-              type = lib.types.enum [ "option" "shift" "command" "optionShift" ];
+              type = lib.types.enum [ "optionShift" "option" "shift" "command" "control" ];
               default = "optionShift";
-              description = "Modifier key for scroll gestures.";
+              description = "Modifier key held for column scrolling.";
             };
             mouseResizeModifierKey = lib.mkOption {
               type = lib.types.enum [ "option" "shift" "command" ];
               default = "option";
-              description = "Modifier key for mouse resize.";
+              description = "Modifier key for mouse window resize.";
             };
             fingerCount = lib.mkOption {
               type = lib.types.int;
               default = 3;
-              description = "Number of fingers for trackpad gestures.";
+              description = "Fingers for trackpad swipe gestures.";
             };
             invertDirection = lib.mkOption {
               type = lib.types.bool;
               default = false;
-              description = "Invert gesture direction.";
+              description = "Invert the direction of scroll/gesture navigation.";
             };
             trackpadScrollStyle = lib.mkOption {
               type = lib.types.enum [ "snap" "smooth" ];
@@ -418,7 +382,7 @@ in
             showWorkspaceName = lib.mkOption {
               type = lib.types.bool;
               default = true;
-              description = "Show workspace name in the menu bar.";
+              description = "Show workspace name in OmniWM's menu bar icon.";
             };
             showAppNames = lib.mkOption {
               type = lib.types.bool;
@@ -428,7 +392,7 @@ in
             useWorkspaceId = lib.mkOption {
               type = lib.types.bool;
               default = false;
-              description = "Use workspace ID instead of display name in the menu bar.";
+              description = "Use numeric workspace ID instead of the display name.";
             };
           };
 
@@ -436,22 +400,22 @@ in
             historyEnabled = lib.mkOption {
               type = lib.types.bool;
               default = true;
-              description = "Enable clipboard history.";
+              description = "Enable clipboard history (accessible from command palette).";
             };
             maxItems = lib.mkOption {
               type = lib.types.int;
               default = 50;
-              description = "Maximum clipboard history items.";
+              description = "Maximum items in clipboard history.";
             };
             maxItemBytes = lib.mkOption {
               type = lib.types.int;
               default = 1048576;
-              description = "Maximum bytes per clipboard item (default 1 MB).";
+              description = "Maximum bytes per clipboard item.";
             };
             maxTotalBytes = lib.mkOption {
               type = lib.types.int;
               default = 20971520;
-              description = "Maximum total bytes for the clipboard store (default 20 MB).";
+              description = "Maximum total bytes for clipboard history storage.";
             };
           };
 
@@ -459,12 +423,12 @@ in
             enabled = lib.mkOption {
               type = lib.types.bool;
               default = true;
-              description = "Enable the Quake terminal.";
+              description = "Enable the Quake-style drop-down terminal (uses Ghostty).";
             };
             position = lib.mkOption {
               type = lib.types.enum [ "top" "bottom" "left" "right" "center" ];
               default = "center";
-              description = "Quake terminal position on screen.";
+              description = "Screen position for the Quake terminal.";
             };
             widthPercent = lib.mkOption {
               type = lib.types.number;
@@ -484,169 +448,137 @@ in
             autoHide = lib.mkOption {
               type = lib.types.bool;
               default = true;
-              description = "Auto-hide the Quake terminal when focus is lost.";
+              description = "Auto-hide the terminal when it loses focus.";
             };
             opacity = lib.mkOption {
               type = lib.types.nullOr lib.types.number;
               default = null;
-              description = "Terminal background opacity (null = use default).";
+              description = "Terminal background opacity (null = default).";
             };
             monitorMode = lib.mkOption {
-              type = lib.types.nullOr lib.types.str;
+              type = lib.types.nullOr (lib.types.enum [ "focusedWindow" "focusedMonitor" "mouse" ]);
               default = null;
-              description = "Monitor selection mode for the Quake terminal.";
+              description = "Which monitor to show the terminal on.";
             };
           };
 
           appearance = {
             mode = lib.mkOption {
-              type = lib.types.enum [ "dark" "light" "system" ];
+              type = lib.types.enum [ "dark" "light" ];
               default = "dark";
-              description = "Appearance mode.";
+              description = "UI appearance mode.";
             };
           };
 
+          # ── List options ────────────────────────────────────────────────
+          # These use freeform list-of-attrs so the user writes them directly
+          # in the TOML shape OmniWM expects.
+
           hotkeys = lib.mkOption {
-            type = lib.types.listOf (lib.types.submodule {
-              options = {
-                id = lib.mkOption {
-                  type = lib.types.str;
-                  description = "Unique command identifier.";
-                };
-                command = lib.mkOption {
-                  type = lib.types.str;
-                  description = "Command action string.";
-                };
-                binding = {
-                  modifiers = lib.mkOption {
-                    type = lib.types.listOf (lib.types.enum [
-                      "option" "shift" "control" "command" "function"
-                    ]);
-                    default = [ ];
-                    description = "Modifier keys for this binding.";
-                  };
-                  key = lib.mkOption {
-                    type = lib.types.str;
-                    default = "";
-                    description = "Key for this binding.";
-                  };
-                };
-              };
-            });
+            type = lib.types.listOf (lib.types.attrsOf lib.types.raw);
             default = [ ];
-            description = "Custom hotkey bindings override defaults.";
+            description = ''
+              Hotkey binding overrides. Each entry has:
+              - `id`: command identifier (string)
+              - `binding`: key combo string like "Command+1" or "Unassigned"
+              See the OmniWM IPC-CLI docs for the full command list.
+            '';
+            example = lib.literalExpression ''
+              [
+                { id = "switchWorkspace.0"; binding = "Command+1"; }
+                { id = "focus.left";         binding = "Command+H"; }
+                { id = "focus.down";         binding = "Command+J"; }
+                { id = "focus.up";           binding = "Command+K"; }
+                { id = "focus.right";        binding = "Command+L"; }
+              ]
+            '';
           };
 
           workspaces = lib.mkOption {
-            type = lib.types.listOf (lib.types.submodule {
-              options = {
-                name = lib.mkOption {
-                  type = lib.types.str;
-                  description = "Workspace ID (used as the raw workspace name).";
-                };
-                displayName = lib.mkOption {
-                  type = lib.types.nullOr lib.types.str;
-                  default = null;
-                  description = "Human-readable display name (supports emoji).";
-                };
-                layoutType = lib.mkOption {
-                  type = lib.types.nullOr (lib.types.enum [
-                    "defaultLayout" "niri" "dwindle"
-                  ]);
-                  default = null;
-                  description = "Layout type for this workspace (null = use default).";
-                };
-                monitorAssignment = lib.mkOption {
-                  type = lib.types.nullOr (lib.types.enum [
-                    "main" "secondary" "focused"
-                  ]);
-                  default = null;
-                  description = "Monitor assignment for this workspace.";
-                };
-              };
-            });
+            type = lib.types.listOf (lib.types.attrsOf lib.types.raw);
             default = [ ];
-            description = "Workspace configurations.";
-            example = [
-              { name = "1"; displayName = "1 "; }
-              { name = "2"; displayName = "2 "; }
-              { name = "3"; displayName = "3 "; }
-            ];
+            description = ''
+              Workspace configurations. Each entry has:
+              - `name`: workspace ID (string, usually "1"-"9" or a named ID)
+              - `layoutType`: "niri" or "dwindle"
+              - `monitorAssignment`: { type = "main" | "secondary" | ... }
+              - `id`: optional UUID (omitted to let OmniWM generate one)
+            '';
+            example = lib.literalExpression ''
+              [
+                { name = "1"; layoutType = "niri"; monitorAssignment = { type = "main"; }; }
+                { name = "2"; layoutType = "niri"; monitorAssignment = { type = "main"; }; }
+              ]
+            '';
           };
 
           appRules = lib.mkOption {
-            type = lib.types.listOf (lib.types.submodule {
-              options = {
-                bundleId = lib.mkOption {
-                  type = lib.types.nullOr lib.types.str;
-                  default = null;
-                  description = "Application bundle identifier.";
-                  example = "com.apple.finder";
-                };
-                appNameSubstring = lib.mkOption {
-                  type = lib.types.nullOr lib.types.str;
-                  default = null;
-                  description = "Match app name containing this substring.";
-                };
-                titleSubstring = lib.mkOption {
-                  type = lib.types.nullOr lib.types.str;
-                  default = null;
-                  description = "Match window title containing this substring.";
-                };
-                titleRegex = lib.mkOption {
-                  type = lib.types.nullOr lib.types.str;
-                  default = null;
-                  description = "Match window title against this regex pattern.";
-                };
-                layout = lib.mkOption {
-                  type = lib.types.nullOr (lib.types.enum [ "auto" "tile" "float" ]);
-                  default = null;
-                  description = "Layout behavior for matching windows.";
-                };
-                assignToWorkspace = lib.mkOption {
-                  type = lib.types.nullOr lib.types.str;
-                  default = null;
-                  description = "Assign matching windows to this workspace.";
-                };
-                minWidth = lib.mkOption {
-                  type = lib.types.nullOr lib.types.number;
-                  default = null;
-                  description = "Minimum window width in points.";
-                };
-                minHeight = lib.mkOption {
-                  type = lib.types.nullOr lib.types.number;
-                  default = null;
-                  description = "Minimum window height in points.";
-                };
-              };
-            });
+            type = lib.types.listOf (lib.types.attrsOf lib.types.raw);
             default = [ ];
-            description = "Per-application window rules.";
-            example = [
-              {
-                bundleId = "com.apple.finder";
-                layout = "float";
-              }
-            ];
+            description = ''
+              Per-application window rules. Each entry can have:
+              - `bundleId`: app bundle identifier
+              - `layout`: "auto", "tile", or "float"
+              - `assignToWorkspace`: workspace name
+              - `minWidth` / `minHeight`: minimum window dimensions
+              - `id`: optional UUID
+            '';
+            example = lib.literalExpression ''
+              [
+                { bundleId = "com.apple.finder"; layout = "float"; }
+                { bundleId = "com.google.Chrome"; minWidth = 500.0; minHeight = 375.0; }
+              ]
+            '';
+          };
+
+          monitorBarOverrides = lib.mkOption {
+            type = lib.types.listOf (lib.types.attrsOf lib.types.raw);
+            default = [ ];
+            description = "Per-monitor workspace bar overrides.";
+          };
+
+          monitorNiriOverrides = lib.mkOption {
+            type = lib.types.listOf (lib.types.attrsOf lib.types.raw);
+            default = [ ];
+            description = "Per-monitor Niri layout overrides.";
+          };
+
+          monitorDwindleOverrides = lib.mkOption {
+            type = lib.types.listOf (lib.types.attrsOf lib.types.raw);
+            default = [ ];
+            description = "Per-monitor Dwindle layout overrides.";
+          };
+
+          monitorOrientationOverrides = lib.mkOption {
+            type = lib.types.listOf (lib.types.attrsOf lib.types.raw);
+            default = [ ];
+            description = "Per-monitor orientation overrides.";
+          };
+
+          monitorGapOverrides = lib.mkOption {
+            type = lib.types.listOf (lib.types.attrsOf lib.types.raw);
+            default = [ ];
+            description = "Per-monitor gap overrides.";
           };
         };
       };
       default = { };
-      example = {
-        general = {
-          ipcEnabled = true;
-          defaultLayoutType = "niri";
-        };
-        gaps = {
-          size = 8.0;
-          outer = { left = 8; right = 8; top = 8; bottom = 8; };
-        };
-      };
+      example = lib.literalExpression ''
+        {
+          general = {
+            ipcEnabled = true;
+            defaultLayoutType = "niri";
+          };
+          gaps.size = 8.0;
+          gaps.outer = { left = 3; right = 3; top = 3; bottom = 3; };
+          workspaceBar.enabled = false;
+        }
+      '';
       description = ''
-        OmniWM configuration, written to
+        OmniWM configuration, rendered to
         <filename>~/.config/omniwm/settings.toml</filename>.
         See <link xlink:href="https://github.com/BarutSRB/OmniWM"/> for
-        all supported values.
+        all supported settings and the IPC-CLI reference.
       '';
     };
 
@@ -655,15 +587,13 @@ in
       default = true;
       description = ''
         Automatically manage <filename>~/.config/omniwm/settings.toml</filename>
-        via an activation script. When disabled, you must place the config yourself.
+        via an activation script. Disable if you prefer to manage the file
+        through home-manager or manually.
       '';
     };
   };
 
   config = lib.mkIf cfg.enable {
-    # Write config to ~/.config/omniwm/settings.toml via activation script
-    # so omniwm (a GUI app installed via homebrew cask) finds it at its
-    # fixed path.  The config is live-reloaded by omniwm on save.
     system.activationScripts.omniwmConfig = lib.mkIf cfg.enableConfigManagement (
       let
         primaryUser = config.system.primaryUser;
@@ -675,23 +605,22 @@ in
           CONFIG_DIR="/Users/${primaryUser}/.config/omniwm"
           mkdir -p "$CONFIG_DIR"
 
-          # Symlink the Nix-generated TOML to the fixed config path.
-          # OmniWM live-reloads this file, so darwin-rebuild replaces it atomically.
+          # Symlink the Nix-generated TOML. OmniWM live-reloads this file,
+          # so darwin-rebuild replaces it atomically. The store path is
+          # read-only, which is fine — omniwm only reads it.
           ln -sfn "${configFile}" "$CONFIG_DIR/settings.toml"
         '';
         deps = [ ];
       }
     );
 
-    # Assertions
-    assertions = lib.optional cfg.enableConfigManagement [
-      {
-        assertion = config.system.primaryUser != null;
-        message = ''
-          services.omniwm requires `system.primaryUser` to be set so the config
-          file can be placed in the correct home directory.
-        '';
-      }
-    ];
+    assertions = lib.optional cfg.enableConfigManagement {
+      assertion = config.system.primaryUser != null;
+      message = ''
+        services.omniwm requires `system.primaryUser` to be set so the config
+        file can be placed in the correct home directory.
+        Set it with: system.primaryUser = "your-username";
+      '';
+    };
   };
 }
