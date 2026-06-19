@@ -605,10 +605,11 @@ in
           CONFIG_DIR="/Users/${primaryUser}/.config/omniwm"
           mkdir -p "$CONFIG_DIR"
 
-          # Symlink the Nix-generated TOML. OmniWM live-reloads this file,
-          # so darwin-rebuild replaces it atomically. The store path is
-          # read-only, which is fine — omniwm only reads it.
-          ln -sfn "${configFile}" "$CONFIG_DIR/settings.toml"
+          # Copy the Nix-generated TOML over the old one. OmniWM live-reloads,
+          # so darwin-rebuild replaces it atomically. A regular file (not a
+          # symlink) is used because OmniWM recreates the file if it is
+          # read-only or a dangling symlink.
+          install -m 644 "${configFile}" "$CONFIG_DIR/settings.toml"
         '';
       }
     );
