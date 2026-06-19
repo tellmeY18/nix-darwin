@@ -610,7 +610,6 @@ in
           # read-only, which is fine — omniwm only reads it.
           ln -sfn "${configFile}" "$CONFIG_DIR/settings.toml"
         '';
-        deps = [ ];
       }
     );
 
